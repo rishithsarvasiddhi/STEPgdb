@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY2/ACTIVITY2.iml" filepath="$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY2/ACTIVITY2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY4/ACTIVITY4.iml" filepath="$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY4/ACTIVITY4.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY6/ACTIVITY6.iml" filepath="$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY6/ACTIVITY6.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY8/ACTIVITY8.iml" filepath="$PROJECT_DIR$/ACTIVITIES JAVA/ACTIVITIES JAVA/ACTIVITY8/ACTIVITY8.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/step.iml" filepath="$PROJECT_DIR$/.idea/step.iml" />
+    </modules>
+  </component>
+</project>
