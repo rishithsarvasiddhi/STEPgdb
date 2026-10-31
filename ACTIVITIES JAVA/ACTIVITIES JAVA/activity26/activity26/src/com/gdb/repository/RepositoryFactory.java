@@ -69,7 +69,7 @@ public class RepositoryFactory {
                 String path = props.getProperty("persistence.file.account.path", "data/accounts.csv");
                 boolean backup = Boolean.parseBoolean(props.getProperty("persistence.file.backup.enabled", "true"));
                 int maxBackup = Integer.parseInt(props.getProperty("persistence.file.backup.max", "5"));
-                accountRepositoryInstance = new FileAccountRepository(path, backup, maxBackup);
+                accountRepositoryInstance = new FileAccountRepository(path, true, backup, maxBackup, 1001);
             } else {
                 accountRepositoryInstance = new InMemoryAccountRepository();
             }
@@ -89,7 +89,7 @@ public class RepositoryFactory {
                 String path = props.getProperty("persistence.file.transaction.path", "data/transactions.csv");
                 boolean backup = Boolean.parseBoolean(props.getProperty("persistence.file.backup.enabled", "true"));
                 int maxBackup = Integer.parseInt(props.getProperty("persistence.file.backup.max", "5"));
-                transactionRepositoryInstance = new FileTransactionRepository(path, backup, maxBackup);
+                transactionRepositoryInstance = new FileTransactionRepository(path, true, backup, maxBackup, 1);
             } else {
                 transactionRepositoryInstance = new InMemoryTransactionRepository();
             }
