@@ -3,6 +3,8 @@ package com.gdb.repository;
 import com.gdb.domain.*;
 import com.gdb.exceptions.DataAccessException;
 import com.gdb.file.AtomicFileWriter;
+import com.gdb.file.BackupManager;
+import com.gdb.file.CsvMapper;
 
 import java.io.*;
 import java.nio.file.*;
@@ -16,22 +18,42 @@ public class FileAccountRepository implements AccountRepository {
 
     private final String filePath;
     private final boolean autosave;
+    private final boolean backupEnabled;
+    private final int maxBackups;
     private int nextAccountNumber;
     private final Map<Integer, IAccount> cache = new HashMap<>();
 
-    public FileAccountRepository(String filePath, boolean autosave, int startAccountNumber) {
+    public FileAccountRepository(String filePath, boolean autosave, boolean backupEnabled, int maxBackups, int startAccountNumber) {
         this.filePath = filePath;
         this.autosave = autosave;
+        this.backupEnabled = backupEnabled;
+        this.maxBackups = maxBackups;
         this.nextAccountNumber = startAccountNumber;
         load();
     }
 
+    public FileAccountRepository(String filePath, boolean param2, int param3) {
+        this.filePath = filePath;
+        if (param3 >= 1000) {
+            this.autosave = param2;
+            this.backupEnabled = true;
+            this.maxBackups = 5;
+            this.nextAccountNumber = param3;
+        } else {
+            this.autosave = true;
+            this.backupEnabled = param2;
+            this.maxBackups = param3;
+            this.nextAccountNumber = 1001;
+        }
+        load();
+    }
+
     public FileAccountRepository(String filePath, int startAccountNumber) {
-        this(filePath, true, startAccountNumber);
+        this(filePath, true, true, 5, startAccountNumber);
     }
 
     public FileAccountRepository(String filePath) {
-        this(filePath, true, 1001);
+        this(filePath, true, true, 5, 1001);
     }
 
     // ============================================================
@@ -41,7 +63,28 @@ public class FileAccountRepository implements AccountRepository {
     //   Read accounts from filePath and populate the memory cache.
     // ============================================================
     public synchronized void load() {
-        // TODO: Step 1 - Load accounts from file into cache
+        cache.clear();
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
+            return;
+        }
+        try {
+            List<String> lines = Files.readAllLines(path, java.nio.charset.StandardCharsets.UTF_8);
+            for (String line : lines) {
+                if (line == null || line.trim().isEmpty() || line.trim().startsWith("account_number")) {
+                    continue;
+                }
+                IAccount acc = CsvMapper.fromCsv(line);
+                if (acc != null) {
+                    cache.put(acc.getAccountNumber(), acc);
+                    if (acc.getAccountNumber() >= nextAccountNumber) {
+                        nextAccountNumber = acc.getAccountNumber() + 1;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new DataAccessException("Failed to load accounts from file: " + e.getMessage(), e);
+        }
     }
 
     // ============================================================
@@ -51,7 +94,21 @@ public class FileAccountRepository implements AccountRepository {
     //   Serialize cache to CSV lines and write using AtomicFileWriter.
     // ============================================================
     public synchronized void flush() {
-        // TODO: Step 2 - Flush cache to file atomically
+        try {
+            if (backupEnabled && Files.exists(Paths.get(filePath))) {
+                BackupManager.backup(filePath, maxBackups);
+            }
+            List<String> lines = new ArrayList<>();
+            lines.add(CsvMapper.ACCOUNT_HEADER);
+            List<IAccount> accounts = new ArrayList<>(cache.values());
+            accounts.sort(Comparator.comparingInt(IAccount::getAccountNumber));
+            for (IAccount acc : accounts) {
+                lines.add(CsvMapper.toCsv(acc));
+            }
+            AtomicFileWriter.write(filePath, lines);
+        } catch (IOException e) {
+            throw new DataAccessException("Failed to flush accounts to file: " + e.getMessage(), e);
+        }
     }
 
     // ============================================================
@@ -59,7 +116,14 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized void save(IAccount account) {
-        // TODO: Step 3 - Save account to cache (and flush if autosave)
+        if (account == null) return;
+        cache.put(account.getAccountNumber(), account);
+        if (account.getAccountNumber() >= nextAccountNumber) {
+            nextAccountNumber = account.getAccountNumber() + 1;
+        }
+        if (autosave) {
+            flush();
+        }
     }
 
     // ============================================================
@@ -67,8 +131,7 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized IAccount findById(int accountNumber) {
-        // TODO: Step 4 - Find account by ID from cache
-        return null;
+        return cache.get(accountNumber);
     }
 
     // ============================================================
@@ -76,8 +139,9 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized List<IAccount> findAll() {
-        // TODO: Step 5 - Return all accounts from cache
-        return new ArrayList<>();
+        List<IAccount> list = new ArrayList<>(cache.values());
+        list.sort(Comparator.comparingInt(IAccount::getAccountNumber));
+        return list;
     }
 
     // ============================================================
@@ -85,7 +149,12 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized void update(IAccount account) {
-        // TODO: Step 6 - Update account in cache
+        if (account != null && cache.containsKey(account.getAccountNumber())) {
+            cache.put(account.getAccountNumber(), account);
+            if (autosave) {
+                flush();
+            }
+        }
     }
 
     // ============================================================
@@ -93,7 +162,11 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized void delete(int accountNumber) {
-        // TODO: Step 7 - Delete account from cache
+        if (cache.remove(accountNumber) != null) {
+            if (autosave) {
+                flush();
+            }
+        }
     }
 
     // ============================================================
@@ -101,8 +174,7 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized boolean exists(int accountNumber) {
-        // TODO: Step 8 - Check if account exists in cache
-        return false;
+        return cache.containsKey(accountNumber);
     }
 
     // ============================================================
@@ -110,7 +182,6 @@ public class FileAccountRepository implements AccountRepository {
     // ============================================================
     @Override
     public synchronized int nextAccountNumber() {
-        // TODO: Step 9 - Return current nextAccountNumber and post-increment
         return nextAccountNumber++;
     }
 }
